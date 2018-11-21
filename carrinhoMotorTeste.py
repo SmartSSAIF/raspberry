@@ -45,6 +45,10 @@ pwm2.start(0)
 instrucoes = []
 boleanoMotor = False
 semaforoInstrucoes = threading.Semaphore()
+#class serialDistancia(Thread):
+
+
+
 class Instrucao():
     def  __init__(self, tagA, tagB, angulo, peso, prioridade = 1):
         self.tagA = tagA
@@ -135,6 +139,29 @@ class Motor():
         self.zerarValores()
 Motor().iniciar()
 
+class serialDistancia(Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.cm = serial.Serial("/dev/ttyACM1", 9600)
+
+    def run(self):
+        print("Iniciando serial")
+        while True:
+            self.msgSerial = self.cm.readline()
+            try:
+                self.msgSerial = self.msgSerial.decode()
+                self.trataSerial(self.msgSerial)
+            except:
+                p = 0
+    def trataSerial(self, msg):
+        if(len(msg) > 0):
+            Motor().frenagem()
+            Motor().zerarValores()
+
+    def setPulso(self, valor):
+        self.cm.write(str(valor).encode())
+serial = serialDistancia()
+serial.start()
 class HelloRPC(object):
     def segundoMetodo(self):
         x = (input('Set'))
@@ -189,6 +216,13 @@ class HelloRPC(object):
         except e:
             print("erro na conversao Time")
             print(e)
+    def setPercurso(self, valor):
+        #Valor em centimetros
+        print("comunicacao usb")
+        com = serialDistancia()
+
+
+
 
 s = zerorpc.Server(HelloRPC())
 s.bind("tcp://0.0.0.0:4242")
@@ -438,19 +472,7 @@ if(comunicacao.motor == Motor()):
 else:
     print("Deu ruim o singleton")
 
-class serialDistancia(Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-        self.cm = serial.Serial("/dev/ttyACM1", 9600)
-    def run(self):
-        print("Iniciando serial 2")
-        while True:
-            self.msgSerial = self.cm.readline()
-            try:
-                self.msgSerial = self.msgSerial.decode()
-                trataSerial(self.msgSerial)
-            except:
-                p = 0
+
 #l = Logica()
 #l.start()
 #s = serialDistancia()
@@ -464,3 +486,4 @@ print("Ta no final")
 #        msgSerial = msgSerial.decode()
 #        trataSerial(msgSerial)
 #    except: p=0
+
