@@ -119,5 +119,15 @@ module.exports = function(app) {
 
 	});
 	
+	app.post('/zerar', function(req,res){
+		var corpo = JSON.parse(JSON.stringify(req.body));
+		console.log("Zerando distancia");
+		res.send(corpo);
+		client.invoke("zerar", function(error, res, more) {
+			console.log(res);
+		});
+
+	});
+	
 	
 }
