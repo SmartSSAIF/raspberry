@@ -108,4 +108,16 @@ module.exports = function(app) {
 		});
 
 	});
+	app.post('/setDistancia', function(req,res){
+		var corpo = JSON.parse(JSON.stringify(req.body));
+		console.log(req.body);
+		console.log("Set distancia valor : ",corpo.distancia);
+		res.send(corpo);
+		client.invoke("setDistancia",corpo.distancia, function(error, res, more) {
+			console.log(res);
+		});
+
+	});
+	
+	
 }

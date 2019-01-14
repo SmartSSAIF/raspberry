@@ -236,13 +236,9 @@ class UsbComunicacao(threading.Thread):
             if("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 server.setPWM(0)
-            if("Monitor" in msg):
-                split = msg.split(" ")
-                r = Relatorio()
-                r.gravar(split[1])
 
 u = UsbComunicacao()
-u.start()   
+u.start()
 
 
 
