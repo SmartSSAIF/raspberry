@@ -15,7 +15,7 @@ tempoCaminho = 2
 pwmGlobal = 85
 
 
-
+serialEncoder = None
 
 frequencia = 1000
 ultimaTensao = 0
@@ -186,17 +186,16 @@ class HelloRPC(object):
     def pontoB(self):
         print("Ponto B")
         self.executa(True)
+    def setDistancia(self, valor):
+        global serialEncoder
+        serialEncoder.write(valor)
     def executa(self, bool):
-        global tempoCaminho
         global pwmGlobal
         if (not(Motor().sentidoFrente) == bool):
             print("ta aqui ")
             Motor().sentido(bool)
             Motor().aceleracao()
             Motor().alterarPWM(pwmGlobal)
-            time.sleep(tempoCaminho)
-            Motor().frenagem()
-            Motor().zerarValores()
         print("acabou if")
     def setPWM(self, valor):
         global pwmGlobal
@@ -223,8 +222,38 @@ class HelloRPC(object):
 
 
 
+server = HelloRPC()
 
-s = zerorpc.Server(HelloRPC())
+class UsbComunicacao(threading.Thread):
+    def __init__(self):
+        Thread.__init__(self)
+    def run(self):
+        global server
+        cm = serial.Serial('/dev/ttyACM0',9600)
+        while True:
+            msg = cm.readline().decode()
+            print("Serial: ", msg)
+            if("Deslocou o valor desejado" in msg):
+                print("Tem que parar")
+                server.setPWM(0)
+            if("Monitor" in msg):
+                split = msg.split(" ")
+                r = Relatorio()
+                r.gravar(split[1])
+
+u = UsbComunicacao()
+u.start()   
+
+
+
+
+
+
+
+
+
+
+s = zerorpc.Server(server)
 s.bind("tcp://0.0.0.0:4242")
 s.run()
 
@@ -358,20 +387,6 @@ print("Passou o start")
 
 
 
-class UsbComunicacao(threading.Thread):
-    def __init__(self):
-        Thread.__init__(self)
-    def run(self):
-        cm = serial.Serial('/dev/ttyACM0',9600)
-        while True:
-            msg = cm.readline().decode()
-            if("Monitor" in msg):
-                split = msg.split(" ")
-                r = Relatorio()
-                r.gravar(split[1])
-
-#u = UsbComunicacao()
-#u.start()
 #-------------------------------------------------------------------------------
 #
 
