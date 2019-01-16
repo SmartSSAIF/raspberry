@@ -173,8 +173,14 @@ class HelloRPC(object):
     def setDistancia(self, valor):
         print("Set distancia ", valor)
         global serialEncoder
-        serialEncoder.write(valor.encode())
+        saida = "Distancia " + str(valor)
+        serialEncoder.write(saida.decode())
 
+    def setUltrassom(self, valor):
+        global serialEncoder
+        saida = "Ultrassom " + str(valor)
+        serialEncoder.write(saida.encode())
+        
     def zerar(self):
         global serialEncoder
         msg = "Zerar\n"

@@ -119,6 +119,18 @@ module.exports = function(app) {
 
 	});
 	
+	app.post('/setUltrassom', function(req,res){
+		var corpo = JSON.parse(JSON.stringify(req.body));
+		console.log(req.body);
+		console.log("Set ultrassom valor : ",corpo.distancia);
+		res.send(corpo);
+		client.invoke("setUltrassom",corpo.distancia, function(error, res, more) {
+			console.log(res);
+		});
+
+	});
+	
+	
 	app.post('/zerar', function(req,res){
 		var corpo = JSON.parse(JSON.stringify(req.body));
 		console.log("Zerando distancia");
