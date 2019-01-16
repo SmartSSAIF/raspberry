@@ -262,8 +262,8 @@ def inicializaSerial(caminho):
             objRFID.start()
         else:
             print("Erro no caminho: ", caminho)
-    except e:
-        print(e)
+    except Exception as e:
+        print(str(e))
 
 
 def inicializaComunicacaoSerial():
