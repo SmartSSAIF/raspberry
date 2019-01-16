@@ -267,7 +267,7 @@ def inicializaComunicacaoSerial():
     inicializaSerial('/dev/ttyACM0')
     inicializaSerial('/dev/ttyACM1')
 
-
+inicializaComunicacaoSerial()
 s = zerorpc.Server(HelloRPC())
 s.bind("tcp://0.0.0.0:4242")
 s.run()
