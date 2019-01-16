@@ -177,7 +177,7 @@ class HelloRPC(object):
 
     def zerar(self):
         global serialEncoder
-        msg = "Zerar"
+        msg = "Zerar\n"
         serialEncoder.write(msg.encode())
 
     def executa(self, bool):
