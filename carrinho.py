@@ -229,20 +229,20 @@ objRFID = USBRFID()
 #rfid.start()
 
 def inicializaSerial(caminho):
-	global serialEncoder, objRFID, serialRFID, objEncoder
+    global serialEncoder, objRFID, serialRFID, objEncoder
 
 	auxiliar = serial.Serial(caminho,9600)
 	msg = auxiliar.readline().decode()
-	if("Iniciando encoder" in msg):
+    if("Iniciando encoder" in msg):
         print("Iniciando python serial ", msg)
-		serialEncoder = auxiliar
-		objEncoder.start()
-	elif("Iniciando RFID" in msg):
+        serialEncoder = auxiliar
+        objEncoder.start()
+    elif("Iniciando RFID" in msg):\
         print("Iniciando python serial ", msg)
-		serialRFID = auxiliar
+        serialRFID = auxiliar
 		objRFID.start()
 	else:
-		print("Erro no caminho: ", caminho)
+        print("Erro no caminho: ", caminho)
 
 
 def inicializaComunicacaoSerial():
