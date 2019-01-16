@@ -16,7 +16,7 @@ ultimaTensao = 0
 GPIO.setmode(GPIO.BCM)
 GPIO.setwarnings(False)
 
-#Motor 
+# Motor
 pinoMotorA = 17
 pinoMotorB = 18
 frequencia = 1000
@@ -30,12 +30,12 @@ pwm2 = GPIO.PWM(pinoMotorB, frequencia)
 pwm1.start(0)
 pwm2.start(0)
 
-#Arduino RFID
+# Arduino RFID
 ultimaTag = ""
 serialRFID = ""
 objRFID = ""
 
-#Arduino Encoder
+# Arduino Encoder
 serialEncoder = ""
 objEncoder = ""
 trigger1 = 25
@@ -48,33 +48,36 @@ GPIO.setup(echo1, GPIO.IN)
 GPIO.setup(trigger2, GPIO.OUT)
 GPIO.setup(echo2, GPIO.IN)
 
-
-
-GPIO.setup(4,GPIO.OUT)
+GPIO.setup(4, GPIO.OUT)
 
 instrucoes = []
 boleanoMotor = False
 semaforoInstrucoes = threading.Semaphore()
-#class serialDistancia(Thread):
 
+
+# class serialDistancia(Thread):
 
 
 class Instrucao():
-    def  __init__(self, tagA, tagB, angulo, peso, prioridade = 1):
+    def __init__(self, tagA, tagB, angulo, peso, prioridade=1):
         self.tagA = tagA
         self.tagB = tagB
         self.angulo = angulo
         self.peso = peso
         self.prioridade = prioridade
 
+
 class Motor():
     motor = None
+
     def __new__(cls, *args, **kwargs):
         if not cls.motor:
             cls.motor = super(Motor, cls).__new__(cls, *args, **kwargs)
         return cls.motor
+
     def __init__(self):
         self.ptk = 0
+
     def iniciar(self):
         self.motorPode = True
         print("---------------------------------------------------------")
@@ -84,54 +87,61 @@ class Motor():
         self.valorPWMAtual = 0
         self.emMovimento = False
         self.fimDeCurso = True
+
     def sentido(self, booleano):
-        if(booleano != self.sentidoFrente):
-            if(self.emMovimento):
+        if (booleano != self.sentidoFrente):
+            if (self.emMovimento):
                 self.frenagem()
                 print("freiou")
             else:
                 print("aceleracao")
-                #self.aceleracao()
+                # self.aceleracao()
         else:
             print("Sentido já inicializado")
         self.sentidoFrente = booleano
+
     def alterarRPM(self, valor, tagDestino):
         global ultimaTag
         print("saiu for")
-       # time.sleep(10)
+        # time.sleep(10)
         print("vai while")
-        while self.rpm < valor and self.valorPWMAtual < 100 and not(ultimaTag in tagDestino) and self.motorPode:
+        while self.rpm < valor and self.valorPWMAtual < 100 and not (ultimaTag in tagDestino) and self.motorPode:
             print(self.valorPWMAtual)
-            self.valorPWMAtual+=1
+            self.valorPWMAtual += 1
             self.alterarPWM(self.valorPWMAtual)
             time.sleep(0.1)
 
-        print("PWM "+str(self.valorPWMAtual)+" RPM "+str(self.rpm))
+        print("PWM " + str(self.valorPWMAtual) + " RPM " + str(self.rpm))
+
     def zerarValores(self):
         global pwm1
         global pwm2
         pwm1.ChangeDutyCycle(0)
         pwm2.ChangeDutyCycle(0)
+
     def alterarPWM(self, valor):
         global pwm1
         global pwm2
         self.valorPWMAtual = valor
-        #print("Sentido ",self.sentidoFrente)
-        if(self.sentidoFrente):
+        # print("Sentido ",self.sentidoFrente)
+        if (self.sentidoFrente):
             pwm1.ChangeDutyCycle(valor)
         else:
             pwm2.ChangeDutyCycle(valor)
+
     def aceleracao(self):
-        for i in range(0,100,1):
-            if(self.rpm<250):
+        for i in range(0, 100, 1):
+            if (self.rpm < 250):
                 self.alterarPWM(i)
                 time.sleep(0.001)
 
     def frenagem(self):
-        for i in range(int(self.valorPWMAtual),0,-1):
+        for i in range(int(self.valorPWMAtual), 0, -1):
             self.alterarPWM(i)
             time.sleep(0.001)
         self.zerarValores()
+
+
 Motor().iniciar()
 
 
@@ -155,28 +165,33 @@ class HelloRPC(object):
     def pontoA(self):
         print("Ponto A")
         self.executa(False)
+
     def pontoB(self):
         print("Ponto B")
         self.executa(True)
+
     def setDistancia(self, valor):
         print("Set distancia ", valor)
         global serialEncoder
         serialEncoder.write(valor.encode())
+
     def zerar(self):
         global serialEncoder
         msg = "Zerar"
         serialEncoder.write(msg.encode())
+
     def executa(self, bool):
         global pwmGlobal
-        if (not(Motor().sentidoFrente) == bool):
+        if (not (Motor().sentidoFrente) == bool):
             print("ta aqui ")
             Motor().sentido(bool)
             Motor().aceleracao()
             Motor().alterarPWM(pwmGlobal)
         print("acabou if")
+
     def setPWM(self, valor):
         global pwmGlobal
-        print("Setou pwm para ",valor)
+        print("Setou pwm para ", valor)
         try:
             pwmGlobal = float(valor)
         except e:
@@ -184,59 +199,63 @@ class HelloRPC(object):
             print(e)
         print("setou pwm")
 
-    def setTime(self,valor):
+    def setTime(self, valor):
         global tempoCaminho
-        print("Setou tempo para ",valor)
+        print("Setou tempo para ", valor)
         try:
             tempoCaminho = float(valor)
         except e:
             print("erro na conversao Time")
             print(e)
+
     def setPercurso(self, valor):
         print("comunicacao usb")
         com = serialDistancia()
 
 
-
 class USBEncoder(threading.Thread):
     def __init__(self):
         Thread.__init__(self)
+
     def run(self):
         global serialEncoder
         while True:
             msg = serialEncoder.readline().decode()
             print("Serial Encoder: ", msg)
-            if("Deslocou o valor desejado" in msg):
+            if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 Motor().alterarPWM(0)
-            elif("Obstaculo" in msg):
+            elif ("Obstaculo" in msg):
                 print("Obstaculo no caminho")
-				
+
+
 class USBRFID(threading.Thread):
     def __init__(self):
         Thread.__init__(self)
+
     def run(self):
         global serialRFID
         while True:
             msg = serialEncoder.readline().decode()
             print("Serial RFID: ", msg)
 
+
 objEncoder = USBEncoder()
 objRFID = USBRFID()
 
 
-#encoder.start()
-#rfid.start()
+# encoder.start()
+# rfid.start()
 
 def inicializaSerial(caminho):
     global serialEncoder, objRFID, serialRFID, objEncoder
-    auxiliar = serial.Serial(caminho,9600)
+    auxiliar = serial.Serial(caminho, 9600)
     msg = auxiliar.readline().decode()
-    if("Iniciando encoder" in msg):
+    if ("Iniciando encoder" in msg):
         print("Iniciando python serial ", msg)
         serialEncoder = auxiliar
         objEncoder.start()
-    elif("Iniciando RFID" in msg):\
+    elif ("Iniciando RFID" in msg):
         print("Iniciando python serial ", msg)
         serialRFID = auxiliar
         objRFID.start()
@@ -247,7 +266,7 @@ def inicializaSerial(caminho):
 def inicializaComunicacaoSerial():
     inicializaSerial('/dev/ttyACM0')
     inicializaSerial('/dev/ttyACM1')
-	
+
 
 s = zerorpc.Server(HelloRPC())
 s.bind("tcp://0.0.0.0:4242")
