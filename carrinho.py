@@ -209,8 +209,8 @@ class USBEncoder(threading.Thread):
             if("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 Motor().alterarPWM(0)
-			elif("Obstaculo" in msg):
-				print("Obstaculo no caminho")
+            elif("Obstaculo" in msg):
+                print("Obstaculo no caminho")
 				
 class USBRFID(threading.Thread):
     def __init__(self):
