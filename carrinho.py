@@ -208,7 +208,7 @@ class USBEncoder(threading.Thread):
             print("Serial Encoder: ", msg)
             if("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
-                Motor().frenagem()
+                Motor().alterarPWM(0)
 			elif("Obstaculo" in msg):
 				print("Obstaculo no caminho")
 				
@@ -234,9 +234,11 @@ def inicializaSerial(caminho):
 	auxiliar = serial.Serial(caminho,9600)
 	msg = auxiliar.readline().decode()
 	if("Iniciando encoder" in msg):
+        print("Iniciando python serial ", msg)
 		serialEncoder = auxiliar
 		objEncoder.start()
 	elif("Iniciando RFID" in msg):
+        print("Iniciando python serial ", msg)
 		serialRFID = auxiliar
 		objRFID.start()
 	else:
