@@ -100,6 +100,8 @@ class Motor():
             print("Sentido já inicializado")
         self.sentidoFrente = booleano
 
+    def setMovimento(self, valor):
+        self.emMovimento = valor
     def alterarRPM(self, valor, tagDestino):
         global ultimaTag
         print("saiu for")
@@ -197,7 +199,7 @@ class HelloRPC(object):
             Motor().sentido(bool)
             Motor().aceleracao()
             Motor().alterarPWM(pwmGlobal)
-            Motor().emMovimento = true
+            Motor().setMovimento(true)
         print("acabou if")
 
     def setPWM(self, valor):
@@ -236,7 +238,7 @@ class USBEncoder(threading.Thread):
             if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 Motor().alterarPWM(0)
-                Motor().emMovimento = false;
+                Motor().setMovimento(false)
             elif("Sem obstaculo" in msg):
                 Motor().continuar()
                 print("Sem obstaculo, ligando motor")
