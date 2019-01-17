@@ -252,7 +252,7 @@ class USBRFID(threading.Thread):
     def run(self):
         global serialRFID
         while True:
-            msg = serialEncoder.readline().decode()
+            msg = serialRFID.readline().decode()
             print("Serial RFID: ", msg)
 
 
@@ -268,6 +268,7 @@ def inicializaSerial(caminho):
     try:
         auxiliar = serial.Serial(caminho, 9600)
         msg = auxiliar.readline().decode()
+
         if ("Iniciando encoder" in msg):
             print("Iniciando python serial ", msg)
             serialEncoder = auxiliar
