@@ -139,8 +139,12 @@ class Motor():
         for i in range(int(self.valorPWMAtual), 0, -1):
             self.alterarPWM(i)
             time.sleep(0.001)
-        self.zerarValores()
-
+            self.zerarValores()
+    def pausar(self):
+        self.alterarPWM(0)
+    def continuar(self):
+        if(self.emMovimento):
+            self.alterarPWM(pwmGlobal)
 
 Motor().iniciar()
 
@@ -193,6 +197,7 @@ class HelloRPC(object):
             Motor().sentido(bool)
             Motor().aceleracao()
             Motor().alterarPWM(pwmGlobal)
+            Motor().emMovimento = true
         print("acabou if")
 
     def setPWM(self, valor):
@@ -231,7 +236,12 @@ class USBEncoder(threading.Thread):
             if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 Motor().alterarPWM(0)
+                Motor().emMovimento = false;
+            elif("Sem obstaculo" in msg):
+                Motor().continuar()
+                print("Sem obstaculo, ligando motor")
             elif ("Obstaculo" in msg):
+                Motor().pausar()
                 print("Obstaculo no caminho")
 
 
