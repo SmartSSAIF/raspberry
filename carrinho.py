@@ -286,7 +286,7 @@ def inicializaSerial(caminho):
 
 
 def inicializaComunicacaoSerial():
-    for i in arange(0,10):
+    for i in range(0,10):
         inicializaSerial('/dev/ttyACM'+i)
     #inicializaSerial('/dev/ttyACM1')
 
