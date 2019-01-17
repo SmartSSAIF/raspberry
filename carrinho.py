@@ -145,8 +145,10 @@ class Motor():
     def pausar(self):
         Motor().alterarPWM(0)
     def continuar(self):
+        global pwmGlobal
         if(self.emMovimento):
-            self.alterarPWM(pwmGlobal)
+            print("pwm ligando ", pwmGlobal)
+            Motor().alterarPWM(pwmGlobal)
 
 Motor().iniciar()
 
