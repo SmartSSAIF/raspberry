@@ -143,7 +143,7 @@ class Motor():
             time.sleep(0.001)
             self.zerarValores()
     def pausar(self):
-        self.alterarPWM(0)
+        Motor().alterarPWM(0)
     def continuar(self):
         if(self.emMovimento):
             self.alterarPWM(pwmGlobal)
