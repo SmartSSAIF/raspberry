@@ -148,6 +148,7 @@ class Motor():
         global pwmGlobal
         if(self.emMovimento):
             print("pwm ligando ", pwmGlobal)
+            Motor().aceleracao()
             Motor().alterarPWM(pwmGlobal)
 
 Motor().iniciar()
