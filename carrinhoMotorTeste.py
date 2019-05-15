@@ -15,7 +15,7 @@ tempoCaminho = 2
 pwmGlobal = 85
 
 
-serialEncoder = None
+serialEncoder = ""
 
 frequencia = 1000
 ultimaTensao = 0
@@ -160,8 +160,8 @@ class serialDistancia(Thread):
 
     def setPulso(self, valor):
         self.cm.write(str(valor).encode())
-serial = serialDistancia()
-serial.start()
+#serial = serialDistancia()
+#serial.start()
 class HelloRPC(object):
     def segundoMetodo(self):
         x = (input('Set'))
@@ -178,17 +178,26 @@ class HelloRPC(object):
                 Motor().alterarPWM(abs(y))
             else:
                 Motor().zerarValores()
+
     def pontoA(self):
+        #global serialEncoder
+        #serialEncoder.write("Zerar".encode())
         print("Ponto A")
         self.executa(False)
-
-
     def pontoB(self):
+        #global serialEncoder
+        #serialEncoder.write("Zerar".encode())
         print("Ponto B")
         self.executa(True)
     def setDistancia(self, valor):
+        print("Set distancia ", valor)
         global serialEncoder
-        serialEncoder.write(valor)
+        serialEncoder.write(valor.encode())
+    def zerar(self):
+        global serialEncoder
+        msg = "Zerar"
+        serialEncoder.write(msg.encode())
+
     def executa(self, bool):
         global pwmGlobal
         if (not(Motor().sentidoFrente) == bool):
@@ -229,13 +238,15 @@ class UsbComunicacao(threading.Thread):
         Thread.__init__(self)
     def run(self):
         global server
-        cm = serial.Serial('/dev/ttyACM0',9600)
+        global serialEncoder
+        serialEncoder = serial.Serial('/dev/ttyACM0',9600)
+        print(serialEncoder)
         while True:
-            msg = cm.readline().decode()
+            msg = serialEncoder.readline().decode()
             print("Serial: ", msg)
             if("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
-                server.setPWM(0)
+                Motor().alterarPWM(0)
 
 u = UsbComunicacao()
 u.start()

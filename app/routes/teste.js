@@ -8,7 +8,7 @@ module.exports = function(app) {
 		var varTeste = req.query.teste;
 		// var connection = app.config.dbConnection();
 		// var generic = new app.app.models.GenericDAO(connection);
-		// try { 
+		// try {
 		// 		let instituto = {
 		// 			nome: "if sula",
 		// 			endereco: 2,
@@ -21,11 +21,11 @@ module.exports = function(app) {
 		// 			else console.log("ok");
 
 		// 		});
-		
+
 		// 		generic.read('instituto',function(erro,result){
 		// 			console.log(result);
 		// 		});
-		
+
 		// 		generic.find({idEndereco: 2},'endereco',function(erro, result){
 		// 			console.log(">>")
 		// 			if(erro)
@@ -118,7 +118,7 @@ module.exports = function(app) {
 		});
 
 	});
-	
+
 	app.post('/setUltrassom', function(req,res){
 		var corpo = JSON.parse(JSON.stringify(req.body));
 		console.log(req.body);
@@ -129,8 +129,8 @@ module.exports = function(app) {
 		});
 
 	});
-	
-	
+
+
 	app.post('/zerar', function(req,res){
 		var corpo = JSON.parse(JSON.stringify(req.body));
 		console.log("Zerando distancia");
@@ -140,6 +140,45 @@ module.exports = function(app) {
 		});
 
 	});
-	
-	
+
+       app.post('/setTensao', function(req,res){
+           var corpo = JSON.parse(JSON.stringify(req.body));
+           res.status(200).send(corpo);
+           client.invoke("setTensao",corpo.tensao, function(error, res, more){
+	   if(error){
+	   console.log(error);
+	   }
+	   console.log(res);
+	});
+       });
+
+       app.post('/setTempoBateria', function(req, res){
+	   var corpo = JSON.parse(JSON.stringify(req.body));
+	   res.status(200).send(corpo);
+
+         client.invoke("setTempoBateria", corpo.tempo, function(error, res, more){
+		if(error){
+		 console.log(error);
+		}
+                  console.log(res);
+
+	});
+
+
+    });
+
+		app.post('/instrucao', function(req,res){
+
+			client.connect("tcp://0.0.0.0:4242");
+
+		// client.invoke("addInstrucao", req.body.inst, function(error, res, more) {
+			client.invoke("recebeInstrucao", req.body.inst, function(error, res, more) {
+				console.log(res);
+			});
+
+
+
+		})
+
+
 }

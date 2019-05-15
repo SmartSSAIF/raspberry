@@ -20,7 +20,6 @@
     "generic-node": "^1.0.3",
     "mysql": "^2.16.0",
     "typescript": "^3.1.6",
-	"zerorpc" : "^0.9.8"
-	
+    "zerorpc": "^0.9.8"
   }
 }

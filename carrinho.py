@@ -10,6 +10,8 @@ import _thread
 import serial
 from datetime import datetime
 import zerorpc
+import requests
+import json
 
 ultimaTensao = 0
 
@@ -20,7 +22,7 @@ GPIO.setwarnings(False)
 pinoMotorA = 17
 pinoMotorB = 18
 frequencia = 1000
-pwmGlobal = 85
+pwmGlobal = 50
 
 GPIO.setup(pinoMotorA, GPIO.OUT)
 GPIO.setup(pinoMotorB, GPIO.OUT)
@@ -34,6 +36,8 @@ pwm2.start(0)
 ultimaTag = ""
 serialRFID = ""
 objRFID = ""
+trocouTAG = False
+tagDeParada = ""
 
 # Arduino Encoder
 serialEncoder = ""
@@ -57,6 +61,7 @@ semaforoInstrucoes = threading.Semaphore()
 
 # class serialDistancia(Thread):
 
+instrucoes = []
 
 class Instrucao():
     def __init__(self, tagA, tagB, angulo, peso, prioridade=1):
@@ -87,6 +92,8 @@ class Motor():
         self.valorPWMAtual = 0
         self.emMovimento = False
         self.fimDeCurso = True
+        self.encoder = 0
+        self.encoder2 = 0
 
     def sentido(self, booleano):
         if (booleano != self.sentidoFrente):
@@ -97,7 +104,7 @@ class Motor():
                 print("aceleracao")
                 # self.aceleracao()
         else:
-            print("Sentido já inicializado")
+            print("Sentido j? inicializado")
         self.sentidoFrente = booleano
 
     def setMovimento(self, valor):
@@ -196,13 +203,14 @@ class HelloRPC(object):
         serialEncoder.write(msg.encode())
 
     def executa(self, bool):
+        Motor().encoder = 0
         global pwmGlobal
-        if (not (Motor().sentidoFrente) == bool):
-            print("ta aqui ")
-            Motor().sentido(bool)
-            Motor().aceleracao()
-            Motor().alterarPWM(pwmGlobal)
-            Motor().setMovimento(True)
+        #if (not (Motor().sentidoFrente) == bool):
+        print("ta aqui ")
+        Motor().sentido(bool)
+        Motor().aceleracao()
+        Motor().alterarPWM(pwmGlobal)
+        Motor().setMovimento(True)
         print("acabou if")
 
     def setPWM(self, valor):
@@ -227,14 +235,34 @@ class HelloRPC(object):
     def setPercurso(self, valor):
         print("comunicacao usb")
         com = serialDistancia()
+    def recebeInstrucao(self, instrucao):
+        global tagDeParada
+        instrucao = json.loads(instrucao)
+        tagDeParada = instrucao['destinoRfid']
+        distancia = instrucao['distancia']
+        print("Tag de parada ", tagDeParada)
+        print("Distancia ", distancia)
+        self.zerar()
+        #self.setDistancia()
+        # if(instrucao['peso'] == 1):
+        #     self.pontoA()
+        # else:
+        #     self.pontoB()
+        #print("Instrucao do servidor ", instrucao)
+        #instrucoes.append(instrucao)
+        #print('Tam ', len(instrucoes))
 
 
 class USBEncoder(threading.Thread):
     def __init__(self):
         Thread.__init__(self)
-
+        self.continua = True
     def run(self):
+        self.velocidade = 0
         global serialEncoder
+        global ultimaTag
+        global trocouTAG
+        self.contador =0
         while True:
             msg = serialEncoder.readline().decode()
             print("Serial Encoder: ", msg)
@@ -248,19 +276,62 @@ class USBEncoder(threading.Thread):
             elif ("Obstaculo" in msg):
                 Motor().pausar()
                 print("Obstaculo no caminho")
+            elif "Velocidade" in msg:
+                encoderLocal = int(msg.replace("Velocidade:",""))
+                print("Encoder local ", encoderLocal)
+                #Motor().encoder += Motor().encoder +  
+                encoderSaida = encoderLocal - Motor().encoder
+                Motor().encoder = encoderLocal
+                print("Valor do encoder ", encoderSaida)
+                if encoderSaida >= 0:
+                #encoderLocal = encoderLocal - Motor().encoder 
+                    try:
+                        print("Teste")
+                        if not(Motor().emMovimento):
+                            encoderSaida=0
+                        
+                        r = requests.post("http://192.168.10.99:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 1)
+                        
+                        
+                    except Exception as e:
+                        print("Error ", e)
+            else:
+                print("Else ", msg)
+            print("Ok")
 
+        print("Finalizou encoder")
+        serialEncoder.close()
+    def stop(self):
+        self.continua = False
+        print("Funcao stop ", self.continua)
 
 class USBRFID(threading.Thread):
     def __init__(self):
         Thread.__init__(self)
-
+        self.continua = True
     def run(self):
         global serialRFID
-        while True:
+        global ultimaTag
+        global trocouTAG
+        global tagDeParada
+        while self.continua:
             msg = serialRFID.readline().decode()
-            print("Serial RFID: ", msg)
+           # print("Serial RFID: ", msg)
+            if "RFID" in msg:
+                print("Serial RFID: ", msg)
+                s = msg.replace("RFID:","").replace("\r\n", "")
+                ultimaTag = s
+                if(s == tagDeParada):
+                    Motor().alterarPWM(0)
+                    Motor().setMovimento(False)
+                obj = { 'tag' : s, 'novaTag' : 1, 'velocidade': 0}
+                Motor().encoder2 = Motor().encoder +0
+                print("Mensagem pro servidor ", obj)
+                r = requests.post("http://192.168.10.99:3001/posicao", {'velocidade': 0, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 1})
 
-
+    def stop(self):
+        self.continua = False
+        print("Finalizando RFID", self.continua)
 objEncoder = USBEncoder()
 objRFID = USBRFID()
 
@@ -271,19 +342,18 @@ objRFID = USBRFID()
 def inicializaSerial(caminho):
     global serialEncoder, objRFID, serialRFID, objEncoder
     try:
-        auxiliar = serial.Serial(caminho, 9600)
+        auxiliar = serial.Serial(caminho, 9600, timeout = 2)
         msg = auxiliar.readline().decode()
+        print('Msg:',msg,'Caminho:',caminho)
 
-        if ("Iniciando encoder" in msg):
-            print("Iniciando python serial ", msg)
-            serialEncoder = auxiliar
-            objEncoder.start()
-        elif ("Iniciando RFID" in msg):
+        if ("Iniciou" in msg):
             print("Iniciando python serial ", msg)
             serialRFID = auxiliar
             objRFID.start()
         else:
-            print("Erro no caminho: ", caminho)
+            print("Iniciando python serial ", msg)
+            serialEncoder = auxiliar
+            objEncoder.start()
     except Exception as e:
         print(str(e))
 
@@ -293,8 +363,17 @@ def inicializaComunicacaoSerial():
         inicializaSerial('/dev/ttyACM'+str(i))
     #inicializaSerial('/dev/ttyACM1')
 
+try:
+    inicializaComunicacaoSerial()
+    s = zerorpc.Server(HelloRPC())
+    s.bind("tcp://0.0.0.0:4242")
+    s.run()
+except KeyboardInterrupt:
+    try:
+        #serialEncoder.close()
+        objEncoder.stop()
+        #serialRFID.close()
+    except Exception as e:
+        print(e)
+    sys.exit()
 
-inicializaComunicacaoSerial()
-s = zerorpc.Server(HelloRPC())
-s.bind("tcp://0.0.0.0:4242")
-s.run()
