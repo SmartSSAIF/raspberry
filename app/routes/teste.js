@@ -88,6 +88,18 @@ module.exports = function(app) {
 		});
 
 	});
+
+
+	app.post("/confirmaPedido", (req, res)=>{
+
+		console.log("Confirmando Pedido");
+		client.invoke("confirmaPedido", function(error, res, more) {
+			console.log(res);
+		});
+	})
+
+
+
 	app.post('/setPWM', function(req,res){
 		var corpo = JSON.parse(JSON.stringify(req.body));
 		console.log(req.body);

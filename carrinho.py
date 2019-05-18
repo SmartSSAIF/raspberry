@@ -49,6 +49,11 @@ echo1 = 13
 echo2 = 6
 trigger2 = 5
 
+
+# Instrucao Gambiarra 
+
+proximaInstrucao = False
+
 GPIO.setup(trigger1, GPIO.OUT)
 GPIO.setup(echo1, GPIO.IN)
 GPIO.setup(trigger2, GPIO.OUT)
@@ -201,6 +206,12 @@ class HelloRPC(object):
         saida = "Ultrassom " + str(valor)
         serialEncoder.write(saida.encode())
 
+    def confirmaPedido(self):
+        global proximaInstrucao
+        proximaInstrucao = True
+        print("Confirmou proxima instrucao")
+
+
     def zerar(self):
         global serialEncoder
         # print('Zerou ')
@@ -243,6 +254,7 @@ class HelloRPC(object):
     def recebeInstrucao(self, instrucoes):
         global tagDeParada
         global serialEncoder
+        global proximaInstrucao
         print('\t\t\t\t\t antes for')
         for instrucao in instrucoes:
             instrucao = json.loads(instrucao)
@@ -253,8 +265,8 @@ class HelloRPC(object):
             print(" vai ser Tag de parada ", tagDeParada)
             print("Distancia ", distancia)
             self.setDistancia(distancia)
-            if "peso" in instrucao.keys():
-                
+            proximaInstrucao = False
+            if "peso" in instrucao.keys(): 
                 if instrucao['peso'] == 1:
                     print('Pra frente')
                     self.pontoA()
@@ -265,6 +277,10 @@ class HelloRPC(object):
                     time.sleep(2)
                 print("Finalizou instrucao")
                 self.zerar()
+            mandaNotificacao("Um pedido foi realizado", "/pedido/135")
+            while proximaInstrucao == False:
+                time.sleep(2)
+        mandaNotificacao("Seu pedido foi finalizado.", "home")
         #self.setDistancia()
         # if(instrucao['peso'] == 1):
         #     self.pontoA()
@@ -273,6 +289,25 @@ class HelloRPC(object):
         #print("Instrucao do servidor ", instrucao)
         #instrucoes.append(instrucao)
         #print('Tam ', len(instrucoes))
+
+
+def mandaNotificacao(msg, destinoPage):
+    url = "https://fcm.googleapis.com/fcm/send"
+    payload = "{\r\n \"to\" : \"eqrIkibNwVM:APA91bHsJf2Cxt417oTzNhcWTpgPcFWs8LtqVWqpp0J6uPeWGNWtH0XO8ipT8zTwawYkNnwx1k4G-fTbL35aUrRWWePhlfXuSn9moRZAAR3RHa51AlfFZ9o8T4UUY0QqvitooKyRdeHK\",\r\n \"collapse_key\" : \"type_a\",\r\n \"notification\" : {\r\n     \"body\" : \" " + msg +"\",\r\n     \"title\": \"THAS\",\r\n     \"sound\": \"default\"\r\n },\r\n \"data\" : { \r\n \t \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\",\r\n     \"body\" : \"Body of Your Notification in Data\",\r\n     \"title\": \"Title of Your Notification in Title\",\r\n     \"key_1\" : \"Value for key_1\",\r\n     \"key_2\" : \"Value for key_2\",\r\n     \"status\": \"done\",\r\n     \"screen\": \"" +destinoPage +" \"\r\n }\r\n}"
+    headers = {
+    'Authorization': "key=AAAArpJIlpQ:APA91bEzVdxHZTC4sJV0Jy4LTvFw_DRZS79Rtkl_oar19rRQ2p4KAdeyDWYviof22roX4fQF3Y-DoneBdM-ONpimyIvO4QTWUOyarewyMJ3ByCfSfV_Q_ObawB0v0e0BgNZnzw7PQfUS",
+    'Content-Type': "application/json",
+    'User-Agent': "PostmanRuntime/7.13.0",
+    'Accept': "/",
+    'Cache-Control': "no-cache",
+    'Postman-Token': "43669051-114d-4d9b-adc9-f893859aa45a,90119e72-c037-4929-802e-c49728858e29",
+    'Host': "fcm.googleapis.com",
+    'accept-encoding': "gzip, deflate",
+    'content-length': "613",
+    'Connection': "keep-alive",
+    'cache-control': "no-cache"
+    }
+    response = requests.request("POST", url, data=payload, headers=headers)
 
 
 
@@ -285,9 +320,9 @@ async def web():
             global serialEncoder
             global ultimaTag
             global trocouTAG
-            self.contador =0
+            contador =0
             while True:
-                self.velocidade = 0
+                velocidade = 0
                 msg = serialEncoder.readline().decode()
                 # print("Serial Encoder: ", msg)
                 if ("Deslocou o valor desejado" in msg):
@@ -435,7 +470,7 @@ def inicializaSerial(caminho):
             print("Iniciando python serial ", msg)
             serialEncoder = auxiliar
             #objEncoder.start()
-            t = Thread(target = startaWS, args=(loop,))
+            t = Thread(target = encoder, args=(loop,))
             t.start()
 
     except Exception as e:
