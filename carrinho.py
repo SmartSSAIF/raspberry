@@ -328,7 +328,7 @@ class HelloRPC(object):
 def mandaNotificacao(msg, destinoPage):
     print("Fazendo notificacao")
     url = "https://fcm.googleapis.com/fcm/send"
-    payload = "{\r\n \"to\" : \"eqrIkibNwVM:APA91bHsJf2Cxt417oTzNhcWTpgPcFWs8LtqVWqpp0J6uPeWGNWtH0XO8ipT8zTwawYkNnwx1k4G-fTbL35aUrRWWePhlfXuSn9moRZAAR3RHa51AlfFZ9o8T4UUY0QqvitooKyRdeHK\",\r\n \"collapse_key\" : \"type_a\",\r\n \"notification\" : {\r\n     \"body\" : \" " + msg +"\",\r\n     \"title\": \"THAS\",\r\n     \"sound\": \"default\"\r\n },\r\n \"data\" : { \r\n \t \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\",\r\n     \"body\" : \"Body of Your Notification in Data\",\r\n     \"title\": \"Title of Your Notification in Title\",\r\n     \"key_1\" : \"Value for key_1\",\r\n     \"key_2\" : \"Value for key_2\",\r\n     \"status\": \"done\",\r\n     \"screen\": \"" +destinoPage +" \"\r\n }\r\n}"
+    payload = "{\r\n \"to\" : \"ettR9Jmqqlg:APA91bHrdMTWf2x8GlEtqQztuX4eyiibO8z6eElAmmR8LMJMZTPuDGvDQX_LAdd-0XfE9AvKnhepDAsoCQK1Tu2J24Ry1GO5S5nnMQ_gjbX6fwN3Sz-FvhF4zeY5PXfg0zXRuYnIWTqh\",\r\n \"collapse_key\" : \"type_a\",\r\n \"notification\" : {\r\n     \"body\" : \" " + msg +"\",\r\n     \"title\": \"THAS\",\r\n     \"sound\": \"default\"\r\n },\r\n \"data\" : { \r\n \t \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\",\r\n     \"body\" : \"Body of Your Notification in Data\",\r\n     \"title\": \"Title of Your Notification in Title\",\r\n     \"key_1\" : \"Value for key_1\",\r\n     \"key_2\" : \"Value for key_2\",\r\n     \"status\": \"done\",\r\n     \"screen\": \"" +destinoPage +" \"\r\n }\r\n}"
     headers = {
     'Authorization': "key=AAAArpJIlpQ:APA91bEzVdxHZTC4sJV0Jy4LTvFw_DRZS79Rtkl_oar19rRQ2p4KAdeyDWYviof22roX4fQF3Y-DoneBdM-ONpimyIvO4QTWUOyarewyMJ3ByCfSfV_Q_ObawB0v0e0BgNZnzw7PQfUS",
     'Content-Type': "application/json",
@@ -344,7 +344,7 @@ def mandaNotificacao(msg, destinoPage):
     }
     response = requests.request("POST", url, data=payload, headers=headers)
     print("Response" ,response)
-    print("Status", response.stats_code)
+    print("Status", response.status_code)
     print("Saida notificacao ", response.text)
 
 
@@ -429,7 +429,7 @@ class ExecutaInstrucao(threading.Thread):
                         time.sleep(2)
                     print("Finalizou instrucao")
                     EnviaEncoder().zerar()
-                mandaNotificacao("Um pedido foi realizado", "/pedido/135")
+                    mandaNotificacao("Um pedido foi realizado", "/pedido/135")
                 while proximaInstrucao == False:
                     time.sleep(2)
             mandaNotificacao("Seu pedido foi finalizado.", "home")
