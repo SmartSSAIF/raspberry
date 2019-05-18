@@ -12,6 +12,8 @@ from datetime import datetime
 import zerorpc
 import requests
 import json
+import asyncio
+import websockets
 
 ultimaTensao = 0
 
@@ -57,6 +59,8 @@ GPIO.setup(4, GPIO.OUT)
 instrucoes = []
 boleanoMotor = False
 semaforoInstrucoes = threading.Semaphore()
+
+loop = asyncio.new_event_loop()
 
 
 # class serialDistancia(Thread):
@@ -271,6 +275,60 @@ class HelloRPC(object):
         #print('Tam ', len(instrucoes))
 
 
+
+def encoder(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(web())
+
+async def web():
+        async with websockets.connect(server) as ws:
+            global serialEncoder
+            global ultimaTag
+            global trocouTAG
+            self.contador =0
+            while True:
+                self.velocidade = 0
+                msg = serialEncoder.readline().decode()
+                # print("Serial Encoder: ", msg)
+                if ("Deslocou o valor desejado" in msg):
+                    print("Tem que parar")
+                    # Motor().alterarPWM(0)
+                    # Motor().setMovimento(False)
+                elif("Sem obstaculo" in msg):
+                    Motor().continuar()
+                    print("Sem obstaculo, ligando motor")
+                elif ("Obstaculo" in msg):
+                    Motor().pausar()
+                    print("Obstaculo no caminho")
+                elif "Zerando contador" in msg:
+                    print("Zerou contador")
+                elif "Velocidade" in msg:
+                    encoderLocal = int(msg.replace("Velocidade:",""))
+                    # print("Encoder local ", encoderLocal)
+                    #Motor().encoder += Motor().encoder +  
+                    encoderSaida = encoderLocal - Motor().encoder
+                    Motor().encoder = encoderLocal
+                    # print("Valor do encoder ", encoderSaida)
+                    if encoderSaida >= 0:
+                    #encoderLocal = encoderLocal - Motor().encoder 
+                        try:
+                            # print("Teste")
+                            if not(Motor().emMovimento):
+                                encoderSaida=0
+                            saida = {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}
+                            ws.send(saida)
+                            #r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 0.5)
+                        except Exception as e:
+                            print("Error ", e)
+                else:
+                    pass
+                    # print("Else ", msg)
+                # print("Ok")
+
+            print("Finalizou encoder")
+            serialEncoder.close()
+
+
 class USBEncoder(threading.Thread):
     def __init__(self):
         Thread.__init__(self)
@@ -363,7 +421,7 @@ objRFID = USBRFID()
 # rfid.start()
 
 def inicializaSerial(caminho):
-    global serialEncoder, objRFID, serialRFID, objEncoder
+    global serialEncoder, objRFID, serialRFID, objEncoder, loop
     try:
         auxiliar = serial.Serial(caminho, 9600, timeout = 2)
         msg = auxiliar.readline().decode()
@@ -376,7 +434,10 @@ def inicializaSerial(caminho):
         else:
             print("Iniciando python serial ", msg)
             serialEncoder = auxiliar
-            objEncoder.start()
+            #objEncoder.start()
+            t = Thread(target = startaWS, args=(loop,))
+            t.start()
+
     except Exception as e:
         print(str(e))
 
