@@ -182,7 +182,7 @@ module.exports = function(app) {
     });
 
 		app.post('/instrucao', function(req,res){
-
+			console.log("Body ", req.body)
 			client.connect("tcp://0.0.0.0:4242");
 			var lista = [];
 			var instrucoes = JSON.parse(req.body.inst)
@@ -193,7 +193,9 @@ module.exports = function(app) {
 									lugar: instrucao.node.lugar,
 									rfid: instrucao.node.rfid,
 									peso: instrucao.peso,
-									distancia: instrucao.distancia
+									distancia: instrucao.distancia,
+									isFinal : instrucao.isFinal,
+									pedido : req.body
 							}
 							lista.push(JSON.stringify(enviar))
 							console.log('e ',enviar)        }

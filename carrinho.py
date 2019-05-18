@@ -311,7 +311,7 @@ class HelloRPC(object):
         global proximaInstrucao
         global instrucoes
         for i in serverInstrucoes:
-            if "peso" in i.keys(): 
+            if "peso" in i: 
                 instrucoes.append(i)
         print('\t\t\t\t\t antes for')
  
@@ -434,13 +434,16 @@ class ExecutaInstrucao(threading.Thread):
                         time.sleep(2)
                     print("Finalizou instrucao")
                     EnviaEncoder().zerar()
-                    mandaNotificacao("Um pedido foi realizado", "/pedido/135")
-                while proximaInstrucao == False:
-                    time.sleep(2)
-            if enviarNotificacao:
-                mandaNotificacao("Seu pedido foi finalizado.", "home")
+                if instrucao['isFinal'] = 1:
+                    r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", {'acabou ': 0})
+                    #mandaNotificacao("Um pedido foi realizado", "/pedido/" + str(instrucao['pedido']))
+                    while proximaInstrucao == False:
+                        time.sleep(2)
+            if enviarNotificacao == True:
+                r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", {'acabou ': 1})
+                #mandaNotificacao("Seu pedido foi finalizado.", "home")
                 enviarNotificacao = False
-            time.sleep(10)
+            time.sleep(1)
 
 executa = ExecutaInstrucao()
 executa.start()
