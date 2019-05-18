@@ -310,7 +310,7 @@ class HelloRPC(object):
         global serialEncoder
         global proximaInstrucao
         global instrucoes
-        instrucoes = serverInstrucoes
+        instrucoes.append(serverInstrucoes)
         print('\t\t\t\t\t antes for')
  
         #self.setDistancia()
@@ -407,6 +407,7 @@ class ExecutaInstrucao(threading.Thread):
     def run(self):
         global proximaInstrucao
         global instrucoes
+        global tagDeParada
         enviarNotificacao = False
         while True:
             for instrucao in instrucoes:
@@ -418,7 +419,7 @@ class ExecutaInstrucao(threading.Thread):
                 distancia = instrucao['distancia']
                 print(" vai ser Tag de parada ", tagDeParada)
                 print("Distancia ", distancia)
-                Motor().setDistancia(distancia)
+                EnviaEncoder().setDistancia(distancia)
                 proximaInstrucao = False
                 if "peso" in instrucao.keys(): 
                     if instrucao['peso'] == 1:
