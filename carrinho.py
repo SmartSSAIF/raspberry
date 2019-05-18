@@ -310,7 +310,9 @@ class HelloRPC(object):
         global serialEncoder
         global proximaInstrucao
         global instrucoes
-        instrucoes.append(serverInstrucoes)
+        for i in serverInstrucoes:
+            if "peso" in i.keys(): 
+                instrucoes.append(i)
         print('\t\t\t\t\t antes for')
  
         #self.setDistancia()
