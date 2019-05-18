@@ -324,8 +324,6 @@ class HelloRPC(object):
 
 
 
-executa = ExecutaInstrucao()
-executa.start()
 
 def mandaNotificacao(msg, destinoPage):
     print("Fazendo notificacao")
@@ -435,6 +433,9 @@ class ExecutaInstrucao(threading.Thread):
                 while proximaInstrucao == False:
                     time.sleep(2)
             mandaNotificacao("Seu pedido foi finalizado.", "home")
+
+executa = ExecutaInstrucao()
+executa.start()
 
 
 
