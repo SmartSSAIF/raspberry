@@ -199,6 +199,7 @@ class HelloRPC(object):
 
     def zerar(self):
         global serialEncoder
+        # print('Zerou ')
         msg = "Zerar\n"
         serialEncoder.write(msg.encode())
 
@@ -215,7 +216,7 @@ class HelloRPC(object):
 
     def setPWM(self, valor):
         global pwmGlobal
-        print("Setou pwm para ", valor)
+        # print("Setou pwm para ", valor)
         try:
             pwmGlobal = float(valor)
         except e:
@@ -235,14 +236,31 @@ class HelloRPC(object):
     def setPercurso(self, valor):
         print("comunicacao usb")
         com = serialDistancia()
-    def recebeInstrucao(self, instrucao):
+    def recebeInstrucao(self, instrucoes):
         global tagDeParada
-        instrucao = json.loads(instrucao)
-        tagDeParada = instrucao['destinoRfid']
-        distancia = instrucao['distancia']
-        print("Tag de parada ", tagDeParada)
-        print("Distancia ", distancia)
-        self.zerar()
+        global serialEncoder
+        print('\t\t\t\t\t antes for')
+        for instrucao in instrucoes:
+            instrucao = json.loads(instrucao)
+            self.zerar()
+            print('Instrucao ', instrucao)
+            tagDeParada = instrucao['rfid']
+            distancia = instrucao['distancia']
+            print(" vai ser Tag de parada ", tagDeParada)
+            print("Distancia ", distancia)
+            self.setDistancia(distancia)
+            if "peso" in instrucao.keys():
+                
+                if instrucao['peso'] == 1:
+                    print('Pra frente')
+                    self.pontoA()
+                else:
+                    print("Pra tras")
+                    self.pontoB()
+                while Motor().emMovimento:
+                    time.sleep(2)
+                print("Finalizou instrucao")
+                self.zerar()
         #self.setDistancia()
         # if(instrucao['peso'] == 1):
         #     self.pontoA()
@@ -265,41 +283,44 @@ class USBEncoder(threading.Thread):
         self.contador =0
         while True:
             msg = serialEncoder.readline().decode()
-            print("Serial Encoder: ", msg)
+            # print("Serial Encoder: ", msg)
             if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
-                Motor().alterarPWM(0)
-                Motor().setMovimento(False)
+                # Motor().alterarPWM(0)
+                # Motor().setMovimento(False)
             elif("Sem obstaculo" in msg):
                 Motor().continuar()
                 print("Sem obstaculo, ligando motor")
             elif ("Obstaculo" in msg):
                 Motor().pausar()
                 print("Obstaculo no caminho")
+            elif "Zerando contador" in msg:
+                print("Zerou contador")
             elif "Velocidade" in msg:
                 encoderLocal = int(msg.replace("Velocidade:",""))
-                print("Encoder local ", encoderLocal)
+                # print("Encoder local ", encoderLocal)
                 #Motor().encoder += Motor().encoder +  
                 encoderSaida = encoderLocal - Motor().encoder
                 Motor().encoder = encoderLocal
-                print("Valor do encoder ", encoderSaida)
+                # print("Valor do encoder ", encoderSaida)
                 if encoderSaida >= 0:
                 #encoderLocal = encoderLocal - Motor().encoder 
                     try:
-                        print("Teste")
+                        # print("Teste")
                         if not(Motor().emMovimento):
                             encoderSaida=0
                         
-                        r = requests.post("http://192.168.10.99:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 1)
+                        r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 0.5)
                         
                         
                     except Exception as e:
                         print("Error ", e)
             else:
-                print("Else ", msg)
-            print("Ok")
+                pass
+                # print("Else ", msg)
+            # print("Ok")
 
-        print("Finalizou encoder")
+        # print("Finalizou encoder")
         serialEncoder.close()
     def stop(self):
         self.continua = False
@@ -321,13 +342,15 @@ class USBRFID(threading.Thread):
                 print("Serial RFID: ", msg)
                 s = msg.replace("RFID:","").replace("\r\n", "")
                 ultimaTag = s
+
                 if(s == tagDeParada):
+                    print('Tag de parada ',tagDeParada)
                     Motor().alterarPWM(0)
                     Motor().setMovimento(False)
                 obj = { 'tag' : s, 'novaTag' : 1, 'velocidade': 0}
                 Motor().encoder2 = Motor().encoder +0
                 print("Mensagem pro servidor ", obj)
-                r = requests.post("http://192.168.10.99:3001/posicao", {'velocidade': 0, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 1})
+                r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': 0, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 1})
 
     def stop(self):
         self.continua = False

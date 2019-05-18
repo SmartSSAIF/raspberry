@@ -170,12 +170,29 @@ module.exports = function(app) {
 		app.post('/instrucao', function(req,res){
 
 			client.connect("tcp://0.0.0.0:4242");
-
+			var lista = [];
+			var instrucoes = JSON.parse(req.body.inst)
+			for(var instrucao of instrucoes){
+					if(JSON.stringify(instrucao).includes("node")){
+	
+						var enviar = {
+									lugar: instrucao.node.lugar,
+									rfid: instrucao.node.rfid,
+									peso: instrucao.peso,
+									distancia: instrucao.distancia
+							}
+							lista.push(JSON.stringify(enviar))
+							console.log('e ',enviar)        }
+					else {
+						console.log('Vem ',instrucao)
+		
+					}
+			}
 		// client.invoke("addInstrucao", req.body.inst, function(error, res, more) {
-			client.invoke("recebeInstrucao", req.body.inst, function(error, res, more) {
+			client.invoke("recebeInstrucao", lista, function(error, res, more) {
 				console.log(res);
 			});
-
+			return res.status(200).send({ok:1})
 
 
 		})
