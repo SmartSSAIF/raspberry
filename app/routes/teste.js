@@ -96,6 +96,8 @@ module.exports = function(app) {
 		client.invoke("confirmaPedido", function(error, res, more) {
 			console.log(res);
 		});
+
+		res.send(req.body)
 	})
 
 
