@@ -281,7 +281,7 @@ def encoder(loop):
     loop.run_until_complete(web())
 
 async def web():
-        async with websockets.connect(server) as ws:
+        async with websockets.connect("ws://192.168.10.100:5010") as ws:
             global serialEncoder
             global ultimaTag
             global trocouTAG
