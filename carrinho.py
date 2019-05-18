@@ -407,8 +407,10 @@ class ExecutaInstrucao(threading.Thread):
     def run(self):
         global proximaInstrucao
         global instrucoes
+        enviarNotificacao = False
         while True:
             for instrucao in instrucoes:
+                enviarNotificacao = True
                 instrucao = json.loads(instrucao)
                 EnviaEncoder().zerar()
                 print('Instrucao ', instrucao)
@@ -432,7 +434,10 @@ class ExecutaInstrucao(threading.Thread):
                     mandaNotificacao("Um pedido foi realizado", "/pedido/135")
                 while proximaInstrucao == False:
                     time.sleep(2)
-            mandaNotificacao("Seu pedido foi finalizado.", "home")
+            if enviarNotificacao:
+                mandaNotificacao("Seu pedido foi finalizado.", "home")
+                enviarNotificacao = False
+            time.sleep(10)
 
 executa = ExecutaInstrucao()
 executa.start()
