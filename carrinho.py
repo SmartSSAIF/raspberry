@@ -61,7 +61,6 @@ GPIO.setup(echo2, GPIO.IN)
 
 GPIO.setup(4, GPIO.OUT)
 
-instrucoes = []
 boleanoMotor = False
 semaforoInstrucoes = threading.Semaphore()
 
@@ -170,6 +169,61 @@ class Motor():
 Motor().iniciar()
 
 
+
+class EnviaEncoder(object):
+    def pontoA(self):
+        print("Ponto A")
+        self.executa(False)
+
+    def pontoB(self):
+        print("Ponto B")
+        self.executa(True)
+
+    def setDistancia(self, valor):
+        print("Set distancia ", valor)
+        global serialEncoder
+        saida = "Distancia " + str(valor)
+        serialEncoder.write(saida.encode())
+
+    def setUltrassom(self, valor):
+        global serialEncoder
+        saida = "Ultrassom " + str(valor)
+        serialEncoder.write(saida.encode())
+
+    def confirmaPedido(self):
+        global proximaInstrucao
+        proximaInstrucao = True
+        print("Confirmou proxima instrucao")
+
+
+    def zerar(self):
+        global serialEncoder
+        # print('Zerou ')
+        msg = "Zerar\n"
+        serialEncoder.write(msg.encode())
+
+    def executa(self, bool):
+        Motor().encoder = 0
+        global pwmGlobal
+        #if (not (Motor().sentidoFrente) == bool):
+        print("ta aqui ")
+        Motor().sentido(bool)
+        Motor().aceleracao()
+        Motor().alterarPWM(pwmGlobal)
+        Motor().setMovimento(True)
+        print("acabou if")
+
+    def setPWM(self, valor):
+        global pwmGlobal
+        # print("Setou pwm para ", valor)
+        try:
+            pwmGlobal = float(valor)
+        except e:
+            print("erro na conversao Pwm")
+            print(e)
+        print("setou pwm")
+
+
 class HelloRPC(object):
     def segundoMetodo(self):
         x = (input('Set'))
@@ -251,36 +305,14 @@ class HelloRPC(object):
     def setPercurso(self, valor):
         print("comunicacao usb")
         com = serialDistancia()
-    def recebeInstrucao(self, instrucoes):
+    def recebeInstrucao(self, serverInstrucoes):
         global tagDeParada
         global serialEncoder
         global proximaInstrucao
+        global instrucoes
+        instrucoes = serverInstrucoes
         print('\t\t\t\t\t antes for')
-        for instrucao in instrucoes:
-            instrucao = json.loads(instrucao)
-            self.zerar()
-            print('Instrucao ', instrucao)
-            tagDeParada = instrucao['rfid']
-            distancia = instrucao['distancia']
-            print(" vai ser Tag de parada ", tagDeParada)
-            print("Distancia ", distancia)
-            self.setDistancia(distancia)
-            proximaInstrucao = False
-            if "peso" in instrucao.keys(): 
-                if instrucao['peso'] == 1:
-                    print('Pra frente')
-                    self.pontoA()
-                else:
-                    print("Pra tras")
-                    self.pontoB()
-                while Motor().emMovimento:
-                    time.sleep(2)
-                print("Finalizou instrucao")
-                self.zerar()
-            mandaNotificacao("Um pedido foi realizado", "/pedido/135")
-            while proximaInstrucao == False:
-                time.sleep(2)
-        mandaNotificacao("Seu pedido foi finalizado.", "home")
+ 
         #self.setDistancia()
         # if(instrucao['peso'] == 1):
         #     self.pontoA()
@@ -291,7 +323,12 @@ class HelloRPC(object):
         #print('Tam ', len(instrucoes))
 
 
+
+executa = ExecutaInstrucao()
+executa.start()
+
 def mandaNotificacao(msg, destinoPage):
+    print("Fazendo notificacao")
     url = "https://fcm.googleapis.com/fcm/send"
     payload = "{\r\n \"to\" : \"eqrIkibNwVM:APA91bHsJf2Cxt417oTzNhcWTpgPcFWs8LtqVWqpp0J6uPeWGNWtH0XO8ipT8zTwawYkNnwx1k4G-fTbL35aUrRWWePhlfXuSn9moRZAAR3RHa51AlfFZ9o8T4UUY0QqvitooKyRdeHK\",\r\n \"collapse_key\" : \"type_a\",\r\n \"notification\" : {\r\n     \"body\" : \" " + msg +"\",\r\n     \"title\": \"THAS\",\r\n     \"sound\": \"default\"\r\n },\r\n \"data\" : { \r\n \t \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\",\r\n     \"body\" : \"Body of Your Notification in Data\",\r\n     \"title\": \"Title of Your Notification in Title\",\r\n     \"key_1\" : \"Value for key_1\",\r\n     \"key_2\" : \"Value for key_2\",\r\n     \"status\": \"done\",\r\n     \"screen\": \"" +destinoPage +" \"\r\n }\r\n}"
     headers = {
@@ -308,7 +345,9 @@ def mandaNotificacao(msg, destinoPage):
     'cache-control': "no-cache"
     }
     response = requests.request("POST", url, data=payload, headers=headers)
-
+    print("Response" ,response)
+    print("Status", response.stats_code)
+    print("Saida notificacao ", response.text)
 
 
 def encoder(loop):
@@ -362,6 +401,41 @@ async def web():
 
             print("Finalizou encoder")
             serialEncoder.close()
+
+
+class ExecutaInstrucao(threading.Thread):
+    def __init__(self):
+        Thread.__init__(self)
+    def run(self):
+        global proximaInstrucao
+        global instrucoes
+        while True:
+            for instrucao in instrucoes:
+                instrucao = json.loads(instrucao)
+                EnviaEncoder().zerar()
+                print('Instrucao ', instrucao)
+                tagDeParada = instrucao['rfid']
+                distancia = instrucao['distancia']
+                print(" vai ser Tag de parada ", tagDeParada)
+                print("Distancia ", distancia)
+                Motor().setDistancia(distancia)
+                proximaInstrucao = False
+                if "peso" in instrucao.keys(): 
+                    if instrucao['peso'] == 1:
+                        print('Pra frente')
+                        EnviaEncoder().pontoA()
+                    else:
+                        print("Pra tras")
+                        EnviaEncoder().pontoB()
+                    while Motor().emMovimento:
+                        time.sleep(2)
+                    print("Finalizou instrucao")
+                    EnviaEncoder().zerar()
+                mandaNotificacao("Um pedido foi realizado", "/pedido/135")
+                while proximaInstrucao == False:
+                    time.sleep(2)
+            mandaNotificacao("Seu pedido foi finalizado.", "home")
+
 
 
 class USBEncoder(threading.Thread):
