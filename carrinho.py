@@ -363,12 +363,18 @@ async def web():
             while True:
                 velocidade = 0
                 msg = serialEncoder.readline().decode()
-                print("Serial Encoder: ", msg)
+                print("Serial Encoder!: ", msg)
                 if ("Deslocou o valor desejado" in msg):
                     print("Tem que parar")
                     # Motor().alterarPWM(0)
                     serialEncoder.write(str("Encoder").encode())
                     # Motor().setMovimento(False)
+                elif "Bateria" in msg:
+                    print('Bateria do maluco')
+                    bateria = int(msg.split(" ")[1])
+                    print('Bateria ', bateria)
+                    constante = 0.01328658281
+                    print('Tensao ', float(bateria*constante))
                 elif("Sem obstaculo" in msg):
                     Motor().continuar()
                     print("Sem obstaculo, ligando motor")
