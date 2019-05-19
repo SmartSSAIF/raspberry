@@ -50,7 +50,7 @@ echo2 = 6
 trigger2 = 5
 
 
-# Instrucao Gambiarra 
+# Instrucao Gambiarra
 
 proximaInstrucao = False
 
@@ -311,10 +311,10 @@ class HelloRPC(object):
         global proximaInstrucao
         global instrucoes
         for i in serverInstrucoes:
-            if "peso" in i: 
+            if "peso" in i:
                 instrucoes.append(i)
         print('\t\t\t\t\t antes for')
- 
+
         #self.setDistancia()
         # if(instrucao['peso'] == 1):
         #     self.pontoA()
@@ -363,10 +363,11 @@ async def web():
             while True:
                 velocidade = 0
                 msg = serialEncoder.readline().decode()
-                # print("Serial Encoder: ", msg)
+                print("Serial Encoder: ", msg)
                 if ("Deslocou o valor desejado" in msg):
                     print("Tem que parar")
                     # Motor().alterarPWM(0)
+                    serialEncoder.write(str("Encoder").encode())
                     # Motor().setMovimento(False)
                 elif("Sem obstaculo" in msg):
                     Motor().continuar()
@@ -379,12 +380,12 @@ async def web():
                 elif "Velocidade" in msg:
                     encoderLocal = int(msg.replace("Velocidade:",""))
                     # print("Encoder local ", encoderLocal)
-                    #Motor().encoder += Motor().encoder +  
+                    #Motor().encoder += Motor().encoder +
                     encoderSaida = encoderLocal - Motor().encoder
                     Motor().encoder = encoderLocal
                     # print("Valor do encoder ", encoderSaida)
                     if encoderSaida >= 0:
-                    #encoderLocal = encoderLocal - Motor().encoder 
+                    #encoderLocal = encoderLocal - Motor().encoder
                         try:
                             # print("Teste")
                             if not(Motor().emMovimento):
@@ -410,8 +411,9 @@ class ExecutaInstrucao(threading.Thread):
         global proximaInstrucao
         global instrucoes
         global tagDeParada
-        enviarNotificacao = False
+
         while True:
+            enviarNotificacao = False
             for instrucao in instrucoes:
                 enviarNotificacao = True
                 instrucao = json.loads(instrucao)
@@ -423,7 +425,7 @@ class ExecutaInstrucao(threading.Thread):
                 print("Distancia ", distancia)
                 EnviaEncoder().setDistancia(distancia)
                 proximaInstrucao = False
-                if "peso" in instrucao.keys(): 
+                if "peso" in instrucao.keys():
                     if instrucao['peso'] == 1:
                         print('Pra frente')
                         EnviaEncoder().pontoA()
@@ -434,13 +436,14 @@ class ExecutaInstrucao(threading.Thread):
                         time.sleep(2)
                     print("Finalizou instrucao")
                     EnviaEncoder().zerar()
-                if instrucao['isFinal'] = 1:
-                    r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", {'acabou ': 0})
+                if instrucao['isFinal'] == 1:
+                    r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", json.loads(json.dumps({'acabou': 0, 'pedido': instrucao['pedido']})))
                     #mandaNotificacao("Um pedido foi realizado", "/pedido/" + str(instrucao['pedido']))
                     while proximaInstrucao == False:
                         time.sleep(2)
             if enviarNotificacao == True:
-                r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", {'acabou ': 1})
+                print('Passou if enviar notificacao')
+                r = requests.post("http://192.168.10.100:3001/fimDeInstrucao",json.loads(json.dumps({'acabou': 1, 'pedido': instrucao['pedido']})))
                 #mandaNotificacao("Seu pedido foi finalizado.", "home")
                 enviarNotificacao = False
             time.sleep(1)
@@ -462,7 +465,7 @@ class USBEncoder(threading.Thread):
         self.contador =0
         while True:
             msg = serialEncoder.readline().decode()
-            # print("Serial Encoder: ", msg)
+            print("Serial Encoder!: ", msg)
             if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 # Motor().alterarPWM(0)
@@ -473,25 +476,31 @@ class USBEncoder(threading.Thread):
             elif ("Obstaculo" in msg):
                 Motor().pausar()
                 print("Obstaculo no caminho")
+            elif "Bateria" in msg:
+                print('Bateria do maluco')
+                bateria = int(msg.split(" ")[1])
+                print('Bateria ', bateria)
+                constante = 0.01328658281
+                print('Tensao ', float(bateria*constante))
             elif "Zerando contador" in msg:
                 print("Zerou contador")
             elif "Velocidade" in msg:
                 encoderLocal = int(msg.replace("Velocidade:",""))
-                # print("Encoder local ", encoderLocal)
-                #Motor().encoder += Motor().encoder +  
+                #print("Encoder local ", encoderLocal)
+                #Motor().encoder += Motor().encoder +
                 encoderSaida = encoderLocal - Motor().encoder
                 Motor().encoder = encoderLocal
                 # print("Valor do encoder ", encoderSaida)
                 if encoderSaida >= 0:
-                #encoderLocal = encoderLocal - Motor().encoder 
+                #encoderLocal = encoderLocal - Motor().encoder
                     try:
                         # print("Teste")
                         if not(Motor().emMovimento):
                             encoderSaida=0
-                        
+
                         r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 0.5)
-                        
-                        
+
+
                     except Exception as e:
                         print("Error ", e)
             else:
@@ -581,4 +590,3 @@ except KeyboardInterrupt:
     except Exception as e:
         print(e)
     sys.exit()
-
