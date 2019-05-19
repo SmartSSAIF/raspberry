@@ -465,7 +465,7 @@ class USBEncoder(threading.Thread):
         self.contador =0
         while True:
             msg = serialEncoder.readline().decode()
-            print("Serial Encoder!: ", msg)
+            print("Serial Encoder!!: ", msg)
             if ("Deslocou o valor desejado" in msg):
                 print("Tem que parar")
                 # Motor().alterarPWM(0)
