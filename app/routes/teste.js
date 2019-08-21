@@ -180,7 +180,22 @@ module.exports = function(app) {
 
 
     });
-
+		app.post('/controleGuincho', function(req, res){
+			console.log('BOdy ', req.body)
+			valor = req.body.sentido;
+			client.connect("tcp://0.0.0.0:4242");
+			try{
+			client.invoke("guincho",valor, function(error, res, more){
+				if(error){
+					console.log(error)
+				}
+			})
+		}
+		catch		{
+			console.log('Erro zerorpc controleGuincho')
+		}	// client.close()
+			return res.status(200).send({'ok': 1})
+		})
 		app.post('/instrucao', function(req,res){
 			console.log("Body ", req.body)
 			client.connect("tcp://0.0.0.0:4242");
@@ -190,12 +205,13 @@ module.exports = function(app) {
 					if(JSON.stringify(instrucao).includes("node")){
 	
 						var enviar = {
+									ultimaTag: instrucoes[instrucoes.length-1].node.rfid,
 									lugar: instrucao.node.lugar,
 									rfid: instrucao.node.rfid,
 									peso: instrucao.peso,
 									distancia: instrucao.distancia,
 									isFinal : instrucao.isFinal,
-									pedido : req.body
+									pedido : JSON.parse(req.body.obs).id
 							}
 							lista.push(JSON.stringify(enviar))
 							console.log('e ',enviar)        }

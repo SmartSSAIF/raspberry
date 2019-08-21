@@ -23,6 +23,8 @@ GPIO.setwarnings(False)
 # Motor
 pinoMotorA = 17
 pinoMotorB = 18
+guinchoA = 26
+guinchoB = 20
 frequencia = 1000
 pwmGlobal = 50
 
@@ -40,6 +42,7 @@ serialRFID = ""
 objRFID = ""
 trocouTAG = False
 tagDeParada = ""
+tagFinal = ""
 
 # Arduino Encoder
 serialEncoder = ""
@@ -53,7 +56,8 @@ trigger2 = 5
 # Instrucao Gambiarra
 
 proximaInstrucao = False
-
+GPIO.setup(guinchoA,GPIO.OUT)
+GPIO.setup(guinchoB,GPIO.OUT)
 GPIO.setup(trigger1, GPIO.OUT)
 GPIO.setup(echo1, GPIO.IN)
 GPIO.setup(trigger2, GPIO.OUT)
@@ -80,6 +84,40 @@ class Instrucao():
         self.prioridade = prioridade
 
 
+class Guincho():
+    guincho = None
+
+    def __new__(cls, *args, **kwargs):
+        if not cls.guincho:
+            cls.guincho = super(Guincho, cls).__new__(cls, *args, **kwargs)
+        return cls.guincho
+
+    def __init__(self):
+        self.ptk = 0
+
+    def iniciar(self):
+        self.sentido = 2
+    def sobe(self):
+        global guinchoA
+        global guinchoB
+        GPIO.output(guinchoA,1)
+        GPIO.output(guinchoB, 0)
+    def desce(self):
+        global guinchoA
+        global guinchoB
+        GPIO.output(guinchoA,0)
+        GPIO.output(guinchoB, 1)
+    def para(self):
+        global guinchoA
+        global guinchoB
+        GPIO.output(guinchoA,0)
+        GPIO.output(guinchoB, 0)
+
+
+
+
+Guincho().iniciar()
+## ---
 class Motor():
     motor = None
 
@@ -158,9 +196,16 @@ class Motor():
             time.sleep(0.001)
             self.zerarValores()
     def pausar(self):
-        Motor().alterarPWM(0)
+        # Motor().alterarPWM(0)
+        global pwm1
+        global pwm2
+        valor = 0
+        pwm1.ChangeDutyCycle(valor)
+        pwm2.ChangeDutyCycle(valor)
+        print("Pausando essa desgraca")
     def continuar(self):
         global pwmGlobal
+
         if(self.emMovimento):
             print("pwm ligando ", pwmGlobal)
             Motor().aceleracao()
@@ -211,7 +256,7 @@ class EnviaEncoder(object):
         Motor().aceleracao()
         Motor().alterarPWM(pwmGlobal)
         Motor().setMovimento(True)
-        print("acabou if")
+        print("acabou if do executa Encoder")
 
     def setPWM(self, valor):
         global pwmGlobal
@@ -240,7 +285,16 @@ class HelloRPC(object):
                 Motor().alterarPWM(abs(y))
             else:
                 Motor().zerarValores()
-
+    def guincho(self, valor):
+        print("GUincho ",valor)
+        valor = int(valor)
+        print(type(valor))
+        if valor == 0:
+            Guincho().sobe()
+        elif valor == 1:
+            Guincho().desce()
+        else:
+            Guincho().para()
     def pontoA(self):
         print("Ponto A")
         self.executa(False)
@@ -312,6 +366,7 @@ class HelloRPC(object):
         global instrucoes
         for i in serverInstrucoes:
             if "peso" in i:
+                print('ADD\n', i)
                 instrucoes.append(i)
         print('\t\t\t\t\t antes for')
 
@@ -355,7 +410,7 @@ def encoder(loop):
     loop.run_until_complete(web())
 
 async def web():
-        async with websockets.connect("ws://192.168.10.100:5010") as ws:
+        async with websockets.connect("ws://192.168.10.105:5050") as ws:
             global serialEncoder
             global ultimaTag
             global trocouTAG
@@ -385,11 +440,11 @@ async def web():
                     print("Zerou contador")
                 elif "Velocidade" in msg:
                     encoderLocal = int(msg.replace("Velocidade:",""))
-                    # print("Encoder local ", encoderLocal)
+                    print("Encoder local ", encoderLocal)
                     #Motor().encoder += Motor().encoder +
                     encoderSaida = encoderLocal - Motor().encoder
                     Motor().encoder = encoderLocal
-                    # print("Valor do encoder ", encoderSaida)
+                    print("Valor do encoder ", encoderSaida)
                     if encoderSaida >= 0:
                     #encoderLocal = encoderLocal - Motor().encoder
                         try:
@@ -417,41 +472,46 @@ class ExecutaInstrucao(threading.Thread):
         global proximaInstrucao
         global instrucoes
         global tagDeParada
+        global tagFinal
 
         while True:
             enviarNotificacao = False
-            for instrucao in instrucoes:
+            notificacao = 0
+
+            while len(instrucoes) > 0:#for instrucao in instrucoes:
+                instrucao = instrucoes.pop(0)
                 enviarNotificacao = True
+                notificacao +=1
                 instrucao = json.loads(instrucao)
                 EnviaEncoder().zerar()
-                print('Instrucao ', instrucao)
                 tagDeParada = instrucao['rfid']
+                tagFinal = instrucao['ultimaTag']
                 distancia = instrucao['distancia']
-                print(" vai ser Tag de parada ", tagDeParada)
-                print("Distancia ", distancia)
                 EnviaEncoder().setDistancia(distancia)
+                print("Distancia a setar ", distancia)
                 proximaInstrucao = False
                 if "peso" in instrucao.keys():
                     if instrucao['peso'] == 1:
-                        print('Pra frente')
                         EnviaEncoder().pontoA()
                     else:
-                        print("Pra tras")
                         EnviaEncoder().pontoB()
                     while Motor().emMovimento:
                         time.sleep(2)
-                    print("Finalizou instrucao")
+                    print("Finalizou instrucao ", len(instrucoes))
                     EnviaEncoder().zerar()
+                print('Valor notificacao ', enviarNotificacao)
                 if instrucao['isFinal'] == 1:
-                    r = requests.post("http://192.168.10.100:3001/fimDeInstrucao", json.loads(json.dumps({'acabou': 0, 'pedido': instrucao['pedido']})))
-                    #mandaNotificacao("Um pedido foi realizado", "/pedido/" + str(instrucao['pedido']))
+                    print("Vai enviar ", notificacao)
+                    enviarNotificacao = True
+                    r = requests.post("http://192.168.10.105:3001/fimDeInstrucao", json.loads(json.dumps({'acabou': 0, 'pedido': instrucao['pedido'],'primeiro': 1})))
                     while proximaInstrucao == False:
                         time.sleep(2)
-            if enviarNotificacao == True:
-                print('Passou if enviar notificacao')
-                r = requests.post("http://192.168.10.100:3001/fimDeInstrucao",json.loads(json.dumps({'acabou': 1, 'pedido': instrucao['pedido']})))
-                #mandaNotificacao("Seu pedido foi finalizado.", "home")
+            if  enviarNotificacao == True:
+            # if len(instrucoes) > 0:
+                print("Vai enviar notificacao")
+                r = requests.post("http://192.168.10.105:3001/fimDeInstrucao",json.loads(json.dumps({'acabou': 1, 'pedido': instrucao['pedido'], 'segundo': 2})))
                 enviarNotificacao = False
+                notificacao = 0
             time.sleep(1)
 
 executa = ExecutaInstrucao()
@@ -490,6 +550,8 @@ class USBEncoder(threading.Thread):
                 print('Tensao ', float(bateria*constante))
             elif "Zerando contador" in msg:
                 print("Zerou contador")
+            elif "Obstaculo" in msg:
+                Motor().pausar()
             elif "Velocidade" in msg:
                 encoderLocal = int(msg.replace("Velocidade:",""))
                 #print("Encoder local ", encoderLocal)
@@ -504,7 +566,7 @@ class USBEncoder(threading.Thread):
                         if not(Motor().emMovimento):
                             encoderSaida=0
 
-                        r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 0.5)
+                        r = requests.post("http://192.168.10.105:3001/posicao", {'velocidade': encoderSaida, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 0}, timeout = 0.5)
 
 
                     except Exception as e:
@@ -529,6 +591,7 @@ class USBRFID(threading.Thread):
         global ultimaTag
         global trocouTAG
         global tagDeParada
+        global tagFinal
         while self.continua:
             msg = serialRFID.readline().decode()
            # print("Serial RFID: ", msg)
@@ -537,14 +600,14 @@ class USBRFID(threading.Thread):
                 s = msg.replace("RFID:","").replace("\r\n", "")
                 ultimaTag = s
 
-                if(s == tagDeParada):
+                if(s == tagDeParada or s == tagFinal):
                     print('Tag de parada ',tagDeParada)
                     Motor().alterarPWM(0)
                     Motor().setMovimento(False)
                 obj = { 'tag' : s, 'novaTag' : 1, 'velocidade': 0}
                 Motor().encoder2 = Motor().encoder +0
                 print("Mensagem pro servidor ", obj)
-                r = requests.post("http://192.168.10.100:3001/posicao", {'velocidade': 0, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 1})
+                r = requests.post("http://192.168.10.105:3001/posicao", {'velocidade': 0, 'sentido' : int(Motor().sentidoFrente), 'tag': ultimaTag, 'novaTag': 1})
 
     def stop(self):
         self.continua = False
@@ -559,7 +622,7 @@ objRFID = USBRFID()
 def inicializaSerial(caminho):
     global serialEncoder, objRFID, serialRFID, objEncoder, loop
     try:
-        auxiliar = serial.Serial(caminho, 9600, timeout = 2)
+        auxiliar = serial.Serial(caminho, 115200, timeout = 2)
         msg = auxiliar.readline().decode()
         print('Msg:',msg,'Caminho:',caminho)
 
@@ -596,3 +659,4 @@ except KeyboardInterrupt:
     except Exception as e:
         print(e)
     sys.exit()
+
